@@ -1,0 +1,382 @@
+Enter file contents here
+##########################################################################################################################
+# Philadelphia Water - Office of Watersheds 
+# Program: Climate Change Adaption Program (CCAP) 
+# Project: Precipitation Analysis 																						
+#																														
+# PHASE 1: Comparing historical and future global climate model (GCM) precipitation data for Philadelphia  																																			
+#	
+# Purpose:        Code for statistical parameters of future, historic modeled precipitation data and 
+#                 historic measured data
+# 
+# Created:        7/6/2016 																																		
+# Created by:     Sebastian Malter 
+# Last Modified:  																																	
+#						
+# Related files:  o Project proposel:
+#                 \\pwdhqr\OOWS\Climate Change Adaptation\CCAP Risk Assessment\H&H\Precipitation Analysis\Precipitation Analysis_CCAP_June2016_DRAFT_updated
+#                 o Calculation protocol:
+#                 \\pwdhqr\OOWS\Climate Change Adaptation\CCAP Risk Assessment\H&H\Precipitation Analysis\Precipitation Analysis_Calculation protocol
+#                 o Archive/ file history
+#                   https://github.com/bastim2410/CCAP-Precipitation-Analysis
+#
+#######################################################################################################################
+# 
+#------ QA/ QC ------
+#
+# Checked:        
+# Status: 																															
+#																																				
+# Record of Checking																																
+#																																				
+# Is a record of this check kept elsewhere (Y/N)?																																
+# If yes, please note the location:																															
+# If no, please fill out the information below.																															
+#																																				
+# What was checked? 
+#   			
+#
+# Questions/Clarification Needed:																																
+#																																				
+# Items that need to be addressed: 
+#    
+#
+# Related: (Please note other closely related files.)																																																																						
+#																																				
+# Notes: 
+#      
+########################################################################
+
+
+# Set working directory and library----------------------------------
+setwd("\\\\pwdhqr\\OOWS\\Climate Change Adaptation\\CCAP Risk Assessment\\H&H\\Precipitation Analysis\\Code Development")
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(plyr)
+library(lubridate)
+library(grid)
+library(reshape)
+#library(lubridate)
+#library(matrixStats)
+options(warn=-1)
+options(width=116)
+options(digits=4)
+options(max.print=1000000)
+options(scipen=999)
+
+Sys.setenv(TZ='EST')
+
+# Importing and editing data -----------------------------
+
+#Observed data PIA
+
+
+#GCM data (modeled historic and future)
+
+
+#Importing Grids-------------------------------
+    #(Model_'gridcell'_'modelnumber')
+
+Grid1  <- read.csv("Grid1_ICF_modeled.csv")
+Grid1$date <- as.Date(with(Grid1, paste(Year, Month, Day,sep="-")), "%Y-%m-%d")
+Grid1 <- Grid1 %>% select(date,Model_11, Model_12,Model_13, Model_14,Model_15,Model_16, Model_18, Model_19)
+
+Grid2  <- read.csv("Grid2_ICF_modeled.csv")
+Grid2$date <- as.Date(with(Grid2, paste(Year, Month, Day,sep="-")), "%Y-%m-%d")
+Grid2 <- Grid2 %>% select(date,Model_21,Model_22, Model_23, Model_24, Model_25, Model_26,Model_27, Model_28, Model_29)
+
+Grid3  <- read.csv("Grid3_ICF_modeled.csv")
+Grid3$date <- as.Date(with(Grid3, paste(Year, Month, Day,sep="-")), "%Y-%m-%d")
+Grid3 <- Grid3 %>% select(date,Model_31,  Model_32,Model_33, Model_34,  Model_35,  Model_36,  Model_37,  Model_38,  Model_39)
+
+Grid5  <- read.csv("Grid5_ICF_modeled.csv")
+Grid5$date <- as.Date(with(Grid5, paste(Year, Month, Day,sep="-")), "%Y-%m-%d")
+Grid5 <- Grid5 %>% select(date,Model_51,Model_52, Model_53,Model_54,Model_55, Model_56, Model_57,Model_58, Model_59)
+                          
+Grid6  <- read.csv("Grid6_ICF_modeled.csv")
+Grid6$date <- as.Date(with(Grid6, paste(Year, Month, Day,sep="-")), "%Y-%m-%d")
+Grid6 <- Grid6 %>% select(date,Model_61,Model_62,Model_63,Model_64, Model_65, Model_66,Model_67, Model_68,Model_69)
+
+Grid7  <- read.csv("Grid7_ICF_modeled.csv")
+Grid7$date <- as.Date(with(Grid7, paste(Year, Month, Day,sep="-")), "%Y-%m-%d")
+Grid7 <- Grid7 %>% select(date,Model_71,Model_72,Model_73,Model_74,Model_75, Model_76, Model_77,  Model_78,Model_79)
+                          
+
+#averaging grid cells for each model and converting mm into inch (1 mm = 0.039370079inch)--------------
+
+inch <- 0.039370079
+
+#all models and grid cells---------------
+Model_avg <- merge(Grid2, Grid3, by = c('date'), all=TRUE) 
+Model_avg <- merge(Grid6, Model_avg, by = c('date'), all=TRUE) 
+Model_avg <- merge(Grid5, Model_avg, by = c('date'), all=TRUE)
+#Model_avg <- merge(Grid1, Model_avg, by = c('date'), all=TRUE)
+
+Model_avg <- Model_avg %>% 
+                mutate(Model_1=inch*(Model_21+Model_31+Model_51+Model_61)/4,
+                       Model_2=inch*(Model_22+Model_32+Model_52+Model_62)/4,
+                       Model_3=inch*(Model_23+Model_33+Model_53+Model_63)/4,
+                       Model_4=inch*(Model_24+Model_34+Model_54+Model_64)/4,
+                       Model_5=inch*(Model_25+Model_35+Model_55+Model_65)/4,
+                       Model_6=inch*(Model_26+Model_36+Model_56+Model_66)/4,
+                       Model_7=inch*(Model_27+Model_37+Model_57+Model_67)/4,
+                       Model_8=inch*(Model_28+Model_38+Model_58+Model_68)/4,
+                       Model_9=inch*(Model_29+Model_39+Model_59+Model_69)/4
+                       ) 
+
+model_all <- Model_avg %>% 
+  select(date,
+         Model_1,Model_2,Model_3,Model_4,Model_5,Model_6,Model_7,Model_8,Model_9)
+
+model_all <- melt(model_all, id = c("date"))
+
+names(model_all) <- c("date", "Model", "avg_precip_in")
+  
+ # SM: simplyify
+
+#median and mean-------------------
+
+ModellALL_avg$Median <- apply (ModellALL_avg[,c('M1_avg_precipitation_inch', 
+                                                'M2_avg_precipitation_inch',
+                                                'M3_avg_precipitation_inch',
+                                                'M4_avg_precipitation_inch',
+                                                'M5_avg_precipitation_inch',
+                                                'M6_avg_precipitation_inch',
+                                                'M7_avg_precipitation_inch',
+                                                'M8_avg_precipitation_inch',
+                                                'M9_avg_precipitation_inch')], 1, median)
+
+ModellALL_avg$Mean <- apply (ModellALL_avg[,c('M1_avg_precipitation_inch', 
+                                                'M2_avg_precipitation_inch',
+                                                'M3_avg_precipitation_inch',
+                                                'M4_avg_precipitation_inch',
+                                                'M5_avg_precipitation_inch',
+                                                'M6_avg_precipitation_inch',
+                                                'M7_avg_precipitation_inch',
+                                                'M8_avg_precipitation_inch',
+                                                'M9_avg_precipitation_inch')], 1, mean)
+                        
+          
+
+#individual models averaged across grid cells---------------
+
+Model1_avg <- Model_avg %>% 
+  select(date, Model_21, Model_31, Model_51, Model_61) %>%
+  mutate(avg_precipitation_inch=inch*(Model_21+Model_31+Model_51+Model_61)/4) %>%
+  mutate(Model='1')
+
+Model2_avg <- Model_avg %>% 
+  select(date, Model_22, Model_32, Model_52, Model_62) %>%
+  mutate(avg_precipitation_inch=inch*(Model_22+Model_32+Model_52+Model_62)/4)%>%
+  mutate(Model='2')
+
+Model3_avg <- Model_avg %>% 
+  select(date, Model_23, Model_33, Model_53, Model_63) %>%
+  mutate(avg_precipitation_inch=inch*(Model_23+Model_33+Model_53+Model_63)/4)%>%
+  mutate(Model='3')
+
+Model4_avg <- Model_avg %>% 
+  select(date, Model_24, Model_34, Model_54, Model_64) %>%
+  mutate(avg_precipitation_inch=inch*(Model_24+Model_34+Model_54+Model_64)/4)%>%
+  mutate(Model='4')
+
+Model5_avg <- Model_avg %>% 
+  select(date, Model_25, Model_35, Model_55, Model_65) %>%
+  mutate(avg_precipitation_inch=inch*(Model_25+Model_35+Model_55+Model_65)/4)%>%
+  mutate(Model='5')
+
+Model6_avg <- Model_avg %>% 
+  select(date, Model_26, Model_36, Model_56, Model_66) %>%
+  mutate(avg_precipitation_inch=inch*(Model_26+Model_36+Model_56+Model_66)/4)%>%
+  mutate(Model='6')
+
+Model7_avg <- Model_avg %>% 
+  select(date, Model_27, Model_37, Model_57, Model_67) %>%
+  mutate(avg_precipitation_inch=inch*(Model_27+Model_37+Model_57+Model_67)/4)%>%
+  mutate(Model='7')
+
+Model8_avg <- Model_avg %>% 
+  select(date, Model_28, Model_38, Model_58, Model_68) %>%
+  mutate(avg_precipitation_inch=inch*(Model_28+Model_38+Model_58+Model_68)/4) %>%
+  mutate(Model='8')
+
+Model9_avg <- Model_avg %>% 
+  select(date, Model_29, Model_39, Model_59, Model_69) %>%
+  mutate(avg_precipitation_inch=inch*(Model_29+Model_39+Model_59+Model_69)/4) %>%
+  mutate(Model='9')
+
+
+ModellALL_series <- bind_rows(Model1_avg, Model2_avg, Model3_avg, Model4_avg, Model5_avg, Model6_avg, Model7_avg, Model8_avg, Model9_avg)%>%
+  select(date, Model, avg_precipitation_inch)
+  
+
+        #SM: simplify code
+
+#Creating time series periods-------
+
+ts_1970_1999 <- c(as.Date('1970-01-01'), as.Date(('1999-12-31')))
+ts_1950_1970 <- c(as.Date('1950-01-01'), as.Date(('1969-12-31')))
+ts_1950_2015 <- c(as.Date('1950-01-01'), as.Date('2014-12-31'))
+ts_1985_2015 <- c(as.Date('1985-01-01'), as.Date('2014-12-31'))
+ts_2070_2100 <- c(as.Date('2070-01-01'), as.Date('2099-12-31'))
+
+#min. rainfall event depth------
+min.tot.rain = 0.1 #(as referenced in LTCUP)
+
+#Historic periods
+
+#1970-1999------
+
+Model_70_99 <- ModellALL_series %>% 
+  select(date, Model, avg_precipitation_inch) %>% 
+  filter(as.Date(date) >= as.Date(ts_1970_1999[1]) & as.Date(date)<= as.Date(ts_1970_1999[2])) 
+
+for (i in 1:nrow(Model_70_99)) {
+  if (Model_70_99$avg_precipitation_inch[i] < min.tot.rain) {
+    Model_70_99$avg_precipitation_inch[i] <- 0
+  } 
+}
+
+
+#1950-1970------
+
+Model_50_70 <- model_all %>% 
+  mutate(date = as.Date(date)) %>%
+  select(date, Model, avg_precip_in) %>% 
+  filter(date >= as.Date(ts_1950_1970[1]) & date <= as.Date(ts_1950_1970[2])) 
+
+Model_50_70 <- Model_50_70 %>% 
+  mutate(
+    year = as.numeric(format(date, format = "%Y")),
+    month = as.numeric(format(date, format = "%m")),
+    day = as.numeric(format(date, format = "%d"))) 
+
+Model_50_70_year <- Model_50_70 %>%
+  group_by(Model, year) %>%
+  summarise(yearly_sum_inch = sum(avg_precip_in),
+            yearly_avg_inch = mean(avg_precip_in),
+            sd_inch = sd(avg_precip_in)),
+            yearly_sum_inch = sum(avg_precip_in),)
+
+Model_avg_50_70year <- Model_50_70_year %>% 
+  group_by(year) %>% summarise(avg_p_in = mean(sum_yearly_precip_inch))
+
+
+ggplot(Model_avg_50_70year) + geom_smooth(aes(x=year, y=(avg_p_in)))
+
+ggplot (srts_percent) + 
+  geom_point(aes(y=storage_percent, x=Quantile/100,size=rain, stat="identity",color=rain)) +#+ ggtitle("CDF for Percent Storage Used \n (All data, no SRTs)")
+  scale_color_manual(name="SRT volume (inches)", values =c('steelblue2', 'steelblue3', 'steelblue4'), label=c('0.5-1.0','1.0-2.0','2.0-3.0')) +
+  guides(color=guide_legend(), size = guide_legend())+
+  scale_size_discrete(name="SRT volume (inches)", label=c('0.5-1.0','1.0-2.0','2.0-3.0')) +
+  
+  theme_bw() 
+
+#1950-2015------
+
+Model_50_15 <- ModellALL_series %>% 
+  select(date, Model, avg_precipitation_inch) %>% 
+  filter(as.Date(date) >= as.Date(ts_1950_2015[1]) & as.Date(date)<= as.Date(ts_1950_2015[2])) 
+
+for (i in 1:nrow(Model_50_15)) {
+  if (Model_50_15$avg_precipitation_inch[i] < min.tot.rain) {
+    Model_50_15$avg_precipitation_inch[i] <- 0
+  } 
+}
+
+#1985-2015------
+
+Model_85_15 <- ModellALL_series %>% 
+  select(date, Model, avg_precipitation_inch) %>% 
+  filter(as.Date(date) >= as.Date(ts_1985_2015[1]) & as.Date(date)<= as.Date(ts_1985_2015[2])) 
+
+for (i in 1:nrow(Model_85_15)) {
+  if (Model_85_15$avg_precipitation_inch[i] < min.tot.rain) {
+    Model_85_15$avg_precipitation_inch[i] <- 0
+  } 
+}
+
+#future periods-----
+
+#2070_2099------
+
+Model1_70_99 <- Model1_avg %>% 
+  select(date, avg_precipitation_inch) %>% 
+  filter(as.Date(date) >= as.Date(ts_1970_1999[1]) & as.Date(date)<= as.Date(ts_1970_1999[2])) 
+
+for (i in 1:nrow(Model_1_70_99)) {
+  if (Model1_70_99$avg_precipitation_inch[i] < min.tot.rain) {
+    Model1_70_99$avg_precipitation_inch[i] <- 0
+  } 
+}
+
+
+
+####################################################
+#Creating events
+
+#interevent times
+interevent.dys = 1
+within(Model1_70_99, {
+  timesteps <- c(interevent.dys+1, as.numeric(diff(date), units= 'days'))
+  start.idxs <- which(timesteps > interevent.dys)
+  event <- rep(seq_along(start.idxs), diff(c(start.idxs, length(timesteps)+1)))
+  rm(timesteps, start.idxs)
+  tot.rain <- ave(avg_precipitation_inch,event, FUN=sum)
+})
+
+
+
+
+# Creating statistical parameters ------------------------
+
+#max. yearly historic modeled (1970-1999)
+  
+#option 1 - for each model 
+  
+
+Model1_70_99 <- ModellALL_series %>% 
+  select(date, avg_precipitation_inch) %>% 
+  filter(as.Date(date) >= as.Date(ts_1970_1999[1]) & as.Date(date)<= as.Date(ts_1970_1999[2])) 
+
+
+
+
+
+#option 2
+ 
+
+
+
+# Creating CDF's -----------------------------------------
+
+  #only selecting days with precipitation > 0.1 inch
+
+
+
+
+#####################
+
+for (i in 1:nrow(ModellALL_series)) {
+  if (ModellALL_series$date[i] >= as.Date(ts_1950_2015[1]) & ModellALL_series$date[i] <= as.Date(ts_1950_2015[2]))  {
+    ModellALL_series$Period[i] <- "1950-2015"
+  } else if 
+  (ModellALL_series$date[i] >= as.Date(ts_1970_1999[1]) & ModellALL_series$date[i] <= as.Date(ts_1970_1999[2]))  {
+    ModellALL_series$Period[i] <- "1970-1999"
+  } else if 
+  (ModellALL_series$date[i] >= as.Date(ts_1985_2015[1]) & ModellALL_series$date[i] <= as.Date(ts_1985_2015[2]))  {
+    ModellALL_series$Period[i] <- "1985-2015"
+  } else if 
+  (ModellALL_series$date[i] >= as.Date(ts_2070_2099[1]) & ModellALL_series$date[i] <= as.Date(ts_1970_2099[2]))  {
+    ModellALL_series$Period[i] <- "2070-2099"
+  } else if 
+  (ModellALL_series$date[i] >= as.Date(ts_1950_1970[1]) & ModellALL_series$date[i] <= as.Date(ts_1950_1970[2]))  {
+    ModellALL_series$Period[i] <- "1950-1970"
+  }
+}
+
+
+
+
+
